@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chat App</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 10px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #chat { display: none; }
+  #messages {
+    border: 1px solid #ccc;
+    height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+  input, button {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+  button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+  }
+  button:disabled {
+    background-color: #999;
+  }
+</style>
+</head>
+<body>
+
+<h2>Join Chat Room</h2>
+<input id="username" placeholder="Username" autocomplete="off" />
+<input id="room" placeholder="Room name" autocomplete="off" />
+<input id="password" placeholder="Password" type="password" autocomplete="off" />
+<button id="joinBtn">Join Chat</button>
+
+<div id="chat">
+  <h3>Chat Room</h3>
+  <div id="messages"></div>
+  <input id="messageInput" placeholder="Type a message and press Enter" autocomplete="off" />
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const joinBtn = document.getElementById('joinBtn');
+  const usernameInput = document.getElementById('username');
+  const roomInput = document.getElementById('room');
+  const passwordInput = document.getElementById('password');
+  const chatDiv = document.getElementById('chat');
+  const messagesDiv = document.getElementById('messages');
+  const messageInput = document.getElementById('messageInput');
+
+  let socket;
+
+  joinBtn.onclick = () => {
+    const username = usernameInput.value.trim();
+    const room = roomInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!username || !room || !password) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    socket = io({
+      auth: { username, room, password }
+    });
+
+    socket.on('connect_error', (err) => {
+      alert(err.message);
+    });
+
+    socket.on('connect', () => {
+      chatDiv.style.display = 'block';
+      joinBtn.disabled = true;
+      usernameInput.disabled = true;
+      roomInput.disabled = true;
+      passwordInput.disabled = true;
+    });
+
+    socket.on('message', (msg) => {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const msg = messageInput.value.trim();
+        if (msg) {
+          socket.emit('message', msg);
+          messageInput.value = '';
+        }
+      }
+    });
+  };
+</script>
+
+</body>
+</html>
